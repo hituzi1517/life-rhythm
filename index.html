@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#f7f7fb" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="生活リズム" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="./icons/icon-180.png" />
+  <title>生活リズム表</title>
+  <style>
+    :root{
+      --bg:#f7f7fb; --card:#fff; --text:#111217; --muted:#6f727b; --line:#d9dbe2;
+      --blue:#93c5ee; --blue-strong:#168cff; --meal:#b44925; --exercise:#23765f;
+      --shadow:0 10px 32px rgba(30,36,50,.09); --radius:22px;
+    }
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    html,body{margin:0;min-height:100%;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Hiragino Sans","Yu Gothic",sans-serif;background:var(--bg);color:var(--text)}
+    button,input,select,textarea{font:inherit}
+    button{cursor:pointer}
+    .app{max-width:980px;margin:0 auto;padding:calc(14px + env(safe-area-inset-top)) 12px calc(90px + env(safe-area-inset-bottom))}
+    header{display:grid;grid-template-columns:46px 1fr 46px;align-items:center;margin:4px 0 10px}
+    h1{font-size:24px;text-align:center;margin:0;font-weight:800;letter-spacing:.02em}
+    .iconbtn{width:42px;height:42px;border-radius:50%;border:1px solid #d3d5dc;background:rgba(255,255,255,.78);display:grid;place-items:center;box-shadow:0 4px 14px rgba(0,0,0,.04);font-size:21px}
+    .ghost{visibility:hidden}
+    .quick-card{background:var(--card);border-radius:18px;box-shadow:var(--shadow);padding:10px;margin-bottom:10px}
+    .quick-title{font-size:12px;color:var(--muted);font-weight:700;margin:0 2px 7px}
+    .quick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+    .quick{border:0;border-radius:13px;padding:9px 4px;background:#f1f2f6;color:var(--text);font-weight:750;display:flex;gap:5px;align-items:center;justify-content:center;min-height:43px}
+    .quick:active{transform:scale(.98);background:#e7e9ef}
+    .quick .emoji{font-size:17px}
+    .toolbar{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 2px 6px}
+    .period{border:0;background:transparent;font-weight:800;font-size:18px;padding:5px 2px;color:var(--text)}
+    .navs{display:flex;gap:5px}.navbtn{border:1px solid #d4d6de;background:white;border-radius:10px;width:34px;height:34px;font-size:18px;padding:0}
+    .table-wrap{background:var(--card);border:1px solid #cfd2da;border-radius:4px;overflow:hidden;box-shadow:0 6px 22px rgba(0,0,0,.03)}
+    .head,.row{display:grid;grid-template-columns:76px minmax(0,1fr) 150px}
+    .head{height:38px;border-bottom:1px solid #bfc3cc;background:rgba(255,255,255,.98);z-index:5}
+    .date-head,.comment-head{display:grid;place-items:center;font-weight:700}
+    .date-head{border-right:1px solid #bfc3cc}.comment-head{border-left:1px solid #bfc3cc}
+    .timeline-head{position:relative}
+    .axis{position:absolute;inset:0;display:flex;justify-content:space-between;align-items:center;padding:0 5px;font-weight:700;font-size:13px}
+    .rows-scroll{overflow:hidden}.rows-inner{min-width:0}
+    .row{height:40px;border-bottom:1px solid #cfd2da;position:relative;background:#fff}
+    .row:last-child{border-bottom:0}.row.today{background:#f7fbff}
+    .date-cell{border-right:1px solid #c4c8d0;display:flex;align-items:center;justify-content:center;gap:6px;font-size:14px;background:inherit;position:relative;z-index:2}
+    .date-num{min-width:34px;text-align:right}.dow{min-width:18px;font-weight:700}.sat{color:#0a6bd7}.sun{color:#dc3232}.today .date-num{color:#087af1;font-weight:800}
+    .timeline{position:relative;overflow:hidden;background-image:repeating-linear-gradient(to right, transparent 0, transparent calc(100%/24 - 1px), rgba(135,142,158,.17) calc(100%/24 - 1px), rgba(135,142,158,.17) calc(100%/24))}
+    .sleep{position:absolute;top:0;bottom:0;background:rgba(118,182,229,.58);border-left:1px solid rgba(92,156,208,.25);border-right:1px solid rgba(92,156,208,.25)}
+    .event{position:absolute;top:50%;transform:translate(-50%,-50%);z-index:3;display:grid;place-items:center;width:20px;height:20px;font-size:14px;font-weight:800;text-shadow:0 1px 0 #fff}
+    .event.meal{color:var(--meal)}.event.exercise{color:var(--exercise)}
+    .now-line{position:absolute;top:0;bottom:0;width:2px;background:var(--blue-strong);z-index:4;opacity:.8}
+    .comment-cell{border-left:1px solid #c4c8d0;display:flex;align-items:center;padding:0 7px;min-width:0;font-size:12px;color:#4f535c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:inherit}
+    .comment-cell.empty{color:#b2b5bd}.comment-dot{display:none}
+    .legend{display:flex;gap:16px;align-items:center;padding:8px 4px 2px;color:#5c6069;font-size:13px;flex-wrap:wrap}
+    .legend i{display:inline-block;vertical-align:middle;margin-right:5px}.sq{width:15px;height:15px;background:rgba(118,182,229,.58)}
+    .legend .mealmark{color:var(--meal);font-style:normal;font-weight:800}.legend .runmark{color:var(--exercise);font-style:normal}
+    .fab{position:fixed;right:max(16px, calc((100vw - 980px)/2 + 16px));bottom:calc(18px + env(safe-area-inset-bottom));width:58px;height:58px;border-radius:50%;border:0;background:var(--blue-strong);color:#fff;font-size:36px;line-height:1;box-shadow:0 10px 28px rgba(22,140,255,.35);z-index:10}
+    .fab:active{transform:scale(.96)}
+    .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.28);display:none;align-items:flex-end;justify-content:center;z-index:50}.modal-bg.show{display:flex}
+    .sheet{width:min(680px,100%);max-height:88vh;background:white;border-radius:24px 24px 0 0;padding:14px 16px calc(18px + env(safe-area-inset-bottom));box-shadow:0 -12px 40px rgba(0,0,0,.18);overflow:auto}
+    .handle{width:42px;height:5px;background:#d6d8df;border-radius:99px;margin:0 auto 10px}.sheet h2{font-size:19px;margin:7px 2px 12px}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{display:flex;flex-direction:column;gap:6px}.field label{font-size:12px;color:var(--muted);font-weight:700}.field select,.field input,.field textarea{border:1px solid #d4d7df;border-radius:12px;padding:10px 11px;background:#fff;min-width:0}.field textarea{resize:vertical;min-height:70px;line-height:1.5}.comment-field{margin-top:10px}
+    .primary{border:0;border-radius:14px;padding:11px 15px;background:var(--blue-strong);color:white;font-weight:800}.secondary{border:1px solid #d7d9e0;border-radius:14px;padding:10px 13px;background:#fff;font-weight:700}.danger{color:#c62c2c;border-color:#f0b6b6}.actions{display:flex;gap:8px;justify-content:flex-end;margin-top:11px;flex-wrap:wrap}.history{margin-top:14px;border-top:1px solid #eceef2;padding-top:8px}.history h3{margin:4px 0 3px;font-size:15px}.history-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:8px 2px;border-bottom:1px solid #f0f1f4}.history-main{font-size:13px}.history-time{font-weight:800}.delete{border:0;background:#fff0f0;color:#c72727;border-radius:10px;padding:6px 9px}
+    .setting-section{padding:11px 0;border-bottom:1px solid #eceef2}.setting-section:last-child{border-bottom:0}.setting-section h3{margin:0 0 6px;font-size:15px}.setting-section p{font-size:13px;color:var(--muted);line-height:1.5;margin:0 0 9px}
+    .toast{position:fixed;left:50%;bottom:calc(90px + env(safe-area-inset-bottom));transform:translateX(-50%) translateY(16px);background:rgba(24,25,30,.92);color:white;border-radius:999px;padding:9px 14px;font-size:13px;font-weight:700;opacity:0;pointer-events:none;transition:.22s;z-index:100;white-space:nowrap}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    .empty-note{font-size:11px;color:var(--muted);text-align:center;padding:5px 0 0}
+
+    @media (max-width:650px){
+      .app{padding:calc(5px + env(safe-area-inset-top)) 5px calc(18px + env(safe-area-inset-bottom))}
+      header{grid-template-columns:36px 1fr 36px;margin:0 0 4px} h1{font-size:19px}.iconbtn{width:34px;height:34px;font-size:17px}
+      .quick-card{padding:0;margin:0 0 4px;background:transparent;box-shadow:none}.quick-title{display:none}.quick-grid{grid-template-columns:repeat(4,1fr);gap:3px}
+      .quick{min-height:34px;border-radius:9px;padding:5px 1px;font-size:10.5px;gap:2px}.quick .emoji{font-size:13px}
+      .toolbar{margin:0 0 3px;min-height:30px}.period{font-size:14px;padding:3px 1px}.navs{gap:3px}.navbtn{width:29px;height:29px;border-radius:8px;font-size:16px}
+      .head,.row{grid-template-columns:55px minmax(0,1fr) 73px}.head{height:29px}.row{height:30px}
+      .date-head,.comment-head{font-size:10px}.axis{font-size:10px;padding:0 2px}.date-cell{font-size:10.5px;gap:2px}.date-num{min-width:30px}.dow{min-width:13px}
+      .event{width:15px;height:15px;font-size:11px}.comment-cell{font-size:9px;padding:0 3px}.comment-cell.empty{font-size:0}.comment-cell.empty::after{content:'—';font-size:9px;color:#c1c4ca}
+      .legend{gap:10px;padding:4px 2px 0;font-size:10px}.legend i{margin-right:3px}.sq{width:11px;height:11px}.empty-note{display:none}
+      .fab{width:48px;height:48px;font-size:31px;right:11px;bottom:calc(10px + env(safe-area-inset-bottom))}
+      .form-grid{grid-template-columns:1fr}.sheet{padding-left:13px;padding-right:13px}.toast{bottom:calc(70px + env(safe-area-inset-bottom))}
+    }
+    @media (max-width:360px){
+      .head,.row{grid-template-columns:51px minmax(0,1fr) 62px}.comment-cell{font-size:8px}.date-cell{font-size:10px}.quick{font-size:10px}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header><button class="iconbtn ghost">◀</button><h1>生活リズム表</h1><button id="settingsBtn" class="iconbtn" aria-label="設定">⚙️</button></header>
+
+  <section class="quick-card" aria-label="クイック記録">
+    <div class="quick-title">種類を選んで、記録する時刻を確認・変更</div>
+    <div class="quick-grid">
+      <button class="quick" data-type="wake"><span class="emoji">☀️</span>起床</button>
+      <button class="quick" data-type="sleep"><span class="emoji">🌙</span>就寝</button>
+      <button class="quick" data-type="meal"><span class="emoji">🍴</span>ご飯</button>
+      <button class="quick" data-type="exercise"><span class="emoji">🏃</span>運動</button>
+    </div>
+  </section>
+
+  <div class="toolbar">
+    <button id="periodBtn" class="period">—</button>
+    <div class="navs"><button id="prevBtn" class="navbtn" aria-label="前の期間">‹</button><button id="todayBtn" class="navbtn" aria-label="今日">•</button><button id="nextBtn" class="navbtn" aria-label="次の期間">›</button></div>
+  </div>
+
+  <div class="table-wrap">
+    <div class="rows-scroll" id="scrollBox">
+      <div class="rows-inner">
+        <div class="head"><div class="date-head">日付</div><div class="timeline-head"><div class="axis"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div></div><div class="comment-head">コメント</div></div>
+        <div id="rows"></div>
+      </div>
+    </div>
+  </div>
+  <div class="legend"><span><i class="sq"></i>睡眠</span><span><i class="mealmark">🍴</i>ご飯</span><span><i class="runmark">🏃</i>運動</span></div>
+  <div class="empty-note">行をタップすると、その日の記録とコメントを編集できます。</div>
+</div>
+<button id="addBtn" class="fab" aria-label="記録を追加">＋</button>
+<div id="toast" class="toast"></div>
+
+<div id="editModal" class="modal-bg" role="dialog" aria-modal="true">
+  <div class="sheet">
+    <div class="handle"></div>
+    <h2 id="editTitle">記録を追加</h2>
+    <div class="form-grid">
+      <div class="field"><label for="typeInput">種類</label><select id="typeInput"><option value="wake">☀️ 起床</option><option value="sleep">🌙 就寝</option><option value="meal">🍴 ご飯</option><option value="exercise">🏃 運動</option></select></div>
+      <div class="field"><label for="timeInput">日時（自由に変更できます）</label><input id="timeInput" type="datetime-local" /></div>
+    </div>
+    <div class="actions"><button id="closeEdit" class="secondary">閉じる</button><button id="saveEdit" class="primary">記録を追加</button></div>
+    <div class="field comment-field"><label for="commentInput">この日のコメント</label><textarea id="commentInput" maxlength="120" placeholder="例：寝すぎた／ボドゲ会／筋肉痛"></textarea></div>
+    <div class="actions"><button id="saveComment" class="secondary">コメントを保存</button></div>
+    <div class="history"><h3>この日の記録</h3><div id="dayHistory"></div></div>
+  </div>
+</div>
+
+<div id="settingsModal" class="modal-bg" role="dialog" aria-modal="true">
+  <div class="sheet">
+    <div class="handle"></div><h2>設定・データ</h2>
+    <div class="setting-section"><h3>表示期間</h3><p>直近14日を、スマホでも一画面に収まりやすいコンパクトな表で表示します。矢印で2週間ずつ移動できます。</p><button id="jumpToday" class="secondary">今日を含む2週間へ</button></div>
+    <div class="setting-section"><h3>バックアップ</h3><p>記録とコメントはこの端末のブラウザ内に保存されます。機種変更やブラウザ削除に備えて、たまに書き出しておくのがおすすめです。</p><div class="actions" style="justify-content:flex-start"><button id="exportBtn" class="secondary">JSONを書き出す</button><button id="csvBtn" class="secondary">CSVを書き出す</button><button id="importBtn" class="secondary">JSONを読み込む</button><input id="importFile" type="file" accept="application/json,.json" hidden /></div></div>
+    <div class="setting-section"><h3>データ削除</h3><p>この端末に保存されている生活リズム記録とコメントをすべて削除します。</p><button id="clearBtn" class="secondary danger">すべて削除</button></div>
+    <div class="actions"><button id="closeSettings" class="primary">完了</button></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const KEY = 'lifeRhythm.records.v1';
+  const COMMENTS_KEY = 'lifeRhythm.comments.v1';
+  const DAYS = 14;
+  const typeLabel = {wake:'起床',sleep:'就寝',meal:'ご飯',exercise:'運動'};
+  const typeIcon = {wake:'☀️',sleep:'🌙',meal:'🍴',exercise:'🏃'};
+  let startDay = getDefaultStart();
+  let selectedDay = floorDay(new Date());
+
+  const $ = s => document.querySelector(s);
+  const rows = $('#rows'), toast = $('#toast');
+
+  function load(){ try { return JSON.parse(localStorage.getItem(KEY) || '[]').filter(x => x && x.id && x.type && x.at); } catch { return []; } }
+  function save(list){ localStorage.setItem(KEY, JSON.stringify(list)); }
+  function loadComments(){ try { const x=JSON.parse(localStorage.getItem(COMMENTS_KEY) || '{}'); return x && typeof x==='object' && !Array.isArray(x) ? x : {}; } catch { return {}; } }
+  function saveComments(obj){ localStorage.setItem(COMMENTS_KEY, JSON.stringify(obj)); }
+  function uid(){ return crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36)+Math.random().toString(36).slice(2); }
+  function floorDay(d){ const x=new Date(d); x.setHours(0,0,0,0); return x; }
+  function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
+  function getDefaultStart(){ const t=floorDay(new Date()); return addDays(t,-13); }
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function dateKey(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; }
+  function isoLocal(d){ return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`; }
+  function showToast(msg){ toast.textContent=msg; toast.classList.add('show'); clearTimeout(showToast.t); showToast.t=setTimeout(()=>toast.classList.remove('show'),1500); }
+  function addRecord(type, date=new Date(), quiet=false){ const list=load(); list.push({id:uid(), type, at:new Date(date).toISOString()}); list.sort((a,b)=>new Date(a.at)-new Date(b.at)); save(list); render(); if(!quiet) showToast(`${typeIcon[type]} ${typeLabel[type]}を ${fmtTime(date)} に記録`); }
+  function fmtTime(d){ return new Intl.DateTimeFormat('ja-JP',{hour:'2-digit',minute:'2-digit',hour12:false}).format(d); }
+  function fmtDate(d){ return `${d.getMonth()+1}/${d.getDate()}`; }
+  function dow(d){ return ['日','月','火','水','木','金','土'][d.getDay()]; }
+  function pctOfDay(d){ return ((d.getHours()*60+d.getMinutes()+d.getSeconds()/60)/1440)*100; }
+  function sameDay(a,b){ return a.getFullYear()===b.getFullYear()&&a.getMonth()===b.getMonth()&&a.getDate()===b.getDate(); }
+
+  function sleepIntervals(records){
+    const sorted=[...records].sort((a,b)=>new Date(a.at)-new Date(b.at)); let open=null; const out=[];
+    for(const r of sorted){
+      const t=new Date(r.at);
+      if(r.type==='sleep'){ if(open===null) open=t; }
+      if(r.type==='wake' && open!==null && t>open){ out.push([open,t]); open=null; }
+    }
+    if(open!==null){ const now=new Date(); if(now>open) out.push([open,now]); }
+    return out;
+  }
+
+  function render(){
+    const rec=load(), comments=loadComments(), intervals=sleepIntervals(rec), today=floorDay(new Date()); rows.innerHTML='';
+    const end=addDays(startDay,DAYS-1);
+    const sameMonth=startDay.getMonth()===end.getMonth() && startDay.getFullYear()===end.getFullYear();
+    $('#periodBtn').textContent = sameMonth ? `${startDay.getFullYear()}年${startDay.getMonth()+1}月` : `${startDay.getFullYear()}/${startDay.getMonth()+1} – ${end.getFullYear()}/${end.getMonth()+1}`;
+    for(let i=0;i<DAYS;i++){
+      const day=addDays(startDay,i), next=addDays(day,1), key=dateKey(day);
+      const row=document.createElement('div'); row.className='row'+(sameDay(day,today)?' today':''); row.dataset.date=day.toISOString();
+      const dc=document.createElement('div'); dc.className='date-cell'; const cls=day.getDay()===0?'sun':day.getDay()===6?'sat':''; dc.innerHTML=`<span class="date-num">${fmtDate(day)}</span><span class="dow ${cls}">${dow(day)}</span>`;
+      const tl=document.createElement('div'); tl.className='timeline';
+      for(const [s,e] of intervals){ const a=new Date(Math.max(s,day)), b=new Date(Math.min(e,next)); if(a<b){ const el=document.createElement('div'); el.className='sleep'; const left=(a-day)/(next-day)*100, width=(b-a)/(next-day)*100; el.style.left=left+'%'; el.style.width=width+'%'; tl.appendChild(el); } }
+      rec.filter(r => (r.type==='meal'||r.type==='exercise') && sameDay(new Date(r.at),day)).forEach(r=>{ const d=new Date(r.at), el=document.createElement('div'); el.className='event '+r.type; el.style.left=pctOfDay(d)+'%'; el.textContent=typeIcon[r.type]; el.title=`${typeLabel[r.type]} ${fmtTime(d)}`; tl.appendChild(el); });
+      if(sameDay(day,today)){ const n=new Date(), line=document.createElement('div'); line.className='now-line'; line.style.left=pctOfDay(n)+'%'; tl.appendChild(line); }
+      const cc=document.createElement('div'); const text=(comments[key]||'').trim(); cc.className='comment-cell'+(text?'':' empty'); cc.textContent=text || '—'; cc.title=text;
+      row.append(dc,tl,cc); row.addEventListener('click',()=>openDay(day)); rows.appendChild(row);
+    }
+  }
+
+  function openDay(day, presetType=null){
+    selectedDay=floorDay(day);
+    $('#editTitle').textContent=`${selectedDay.getMonth()+1}/${selectedDay.getDate()} (${dow(selectedDay)}) の記録`;
+    const now=new Date();
+    const defaultTime=sameDay(selectedDay,now)?now:new Date(selectedDay.getFullYear(),selectedDay.getMonth(),selectedDay.getDate(),12,0);
+    $('#timeInput').value=isoLocal(defaultTime);
+    if(presetType && typeLabel[presetType]) $('#typeInput').value=presetType;
+    $('#commentInput').value=loadComments()[dateKey(selectedDay)] || '';
+    renderDayHistory();
+    $('#editModal').classList.add('show');
+  }
+
+  function renderDayHistory(){
+    const list=load().filter(r=>sameDay(new Date(r.at),selectedDay)).sort((a,b)=>new Date(a.at)-new Date(b.at));
+    const box=$('#dayHistory');
+    if(!list.length){box.innerHTML='<div class="empty-note" style="display:block">まだ記録はありません。</div>';return;}
+    box.innerHTML='';
+    for(const r of list){ const d=new Date(r.at), row=document.createElement('div'); row.className='history-row'; row.innerHTML=`<div class="history-main"><span class="history-time">${fmtTime(d)}</span>　${typeIcon[r.type]} ${typeLabel[r.type]}</div><button class="delete" data-id="${r.id}">削除</button>`; box.appendChild(row); }
+    box.querySelectorAll('.delete').forEach(b=>b.addEventListener('click',()=>{ save(load().filter(r=>r.id!==b.dataset.id)); render(); renderDayHistory(); showToast('記録を削除しました'); }));
+  }
+
+  document.querySelectorAll('.quick').forEach(b=>b.addEventListener('click',()=>openDay(new Date(), b.dataset.type)));
+  $('#addBtn').addEventListener('click',()=>openDay(new Date()));
+  $('#closeEdit').addEventListener('click',()=>$('#editModal').classList.remove('show'));
+  $('#saveEdit').addEventListener('click',()=>{ const d=new Date($('#timeInput').value); if(Number.isNaN(d.getTime())) return showToast('日時を選んでください'); addRecord($('#typeInput').value,d,true); selectedDay=floorDay(d); $('#commentInput').value=loadComments()[dateKey(selectedDay)] || ''; renderDayHistory(); showToast('記録を追加しました'); });
+  $('#saveComment').addEventListener('click',()=>{ const all=loadComments(), key=dateKey(selectedDay), value=$('#commentInput').value.trim(); if(value) all[key]=value; else delete all[key]; saveComments(all); render(); showToast(value?'コメントを保存しました':'コメントを消しました'); });
+  $('#editModal').addEventListener('click',e=>{ if(e.target.id==='editModal') e.currentTarget.classList.remove('show'); });
+
+  $('#prevBtn').addEventListener('click',()=>{startDay=addDays(startDay,-DAYS);render();});
+  $('#nextBtn').addEventListener('click',()=>{startDay=addDays(startDay,DAYS);render();});
+  $('#todayBtn').addEventListener('click',()=>{startDay=getDefaultStart();render();});
+  $('#periodBtn').addEventListener('click',()=>{startDay=getDefaultStart();render();});
+
+  $('#settingsBtn').addEventListener('click',()=>$('#settingsModal').classList.add('show'));
+  $('#closeSettings').addEventListener('click',()=>$('#settingsModal').classList.remove('show'));
+  $('#settingsModal').addEventListener('click',e=>{if(e.target.id==='settingsModal')e.currentTarget.classList.remove('show');});
+  $('#jumpToday').addEventListener('click',()=>{startDay=getDefaultStart();render();$('#settingsModal').classList.remove('show');});
+  $('#clearBtn').addEventListener('click',()=>{ if(confirm('すべての記録とコメントを削除しますか？')){localStorage.removeItem(KEY);localStorage.removeItem(COMMENTS_KEY);render();showToast('すべて削除しました');} });
+
+  function download(name,text,mime){ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([text],{type:mime})); a.download=name; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); }
+  $('#exportBtn').addEventListener('click',()=>{ const data={version:2,records:load(),comments:loadComments()}; download(`life-rhythm-${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(data,null,2),'application/json'); });
+  $('#csvBtn').addEventListener('click',()=>{
+    const comments=loadComments();
+    const lines=['date,type,label,time,comment'];
+    const seen=new Set();
+    for(const r of load()){
+      const d=new Date(r.at), key=dateKey(d); seen.add(key);
+      lines.push([key,r.type,typeLabel[r.type],fmtTime(d),comments[key]||''].map(v=>'"'+String(v).replaceAll('"','""')+'"').join(','));
+    }
+    for(const [key,comment] of Object.entries(comments)){ if(!seen.has(key)) lines.push([key,'','','',comment].map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')); }
+    download(`life-rhythm-${new Date().toISOString().slice(0,10)}.csv`, '\ufeff'+lines.join('\n'),'text/csv;charset=utf-8');
+  });
+  $('#importBtn').addEventListener('click',()=>$('#importFile').click());
+  $('#importFile').addEventListener('change',async e=>{
+    const f=e.target.files[0]; if(!f)return;
+    try{
+      const data=JSON.parse(await f.text());
+      if(Array.isArray(data)){
+        const clean=data.filter(x=>x&&x.id&&typeLabel[x.type]&&!Number.isNaN(new Date(x.at).getTime())); save(clean);
+      }else if(data && Array.isArray(data.records)){
+        const clean=data.records.filter(x=>x&&x.id&&typeLabel[x.type]&&!Number.isNaN(new Date(x.at).getTime())); save(clean);
+        if(data.comments && typeof data.comments==='object' && !Array.isArray(data.comments)) saveComments(data.comments);
+      }else throw new Error();
+      render(); showToast('読み込みました');
+    }catch{ alert('このJSONは読み込めませんでした。'); }
+    e.target.value='';
+  });
+
+  const url=new URL(location.href), action=url.searchParams.get('action'), quick=url.searchParams.get('quick');
+  if(typeLabel[action]){
+    openDay(new Date(), action);
+    history.replaceState({},'',location.pathname);
+  } else if(quick==='1'){
+    openDay(new Date());
+    history.replaceState({},'',location.pathname);
+  }
+
+  if('serviceWorker' in navigator){ navigator.serviceWorker.register('./sw.js').catch(()=>{}); }
+  render();
+})();
+</script>
+</body>
+</html>
